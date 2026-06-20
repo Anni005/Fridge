@@ -1,0 +1,525 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Receipt Inventory Demo</title>
+  <style>
+    :root {
+      --bg: #f6f4ef;
+      --card: #fffdf8;
+      --text: #222222;
+      --muted: #77716a;
+      --line: #e7e0d6;
+      --accent: #2f6f5e;
+      --accent-light: #e2f0eb;
+      --warning: #d98b25;
+      --warning-bg: #fff1dc;
+      --danger: #c94f4f;
+      --danger-bg: #fde8e8;
+      --good: #4f8f64;
+      --shadow: 0 14px 34px rgba(35, 30, 24, 0.12);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, #fff7df 0, #f6f4ef 34%, #ede8dd 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", PingFang SC, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+    }
+
+    .phone {
+      width: 390px;
+      height: 820px;
+      background: #111;
+      border-radius: 44px;
+      padding: 12px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.28);
+    }
+
+    .screen {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      border-radius: 34px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .status {
+      height: 36px;
+      padding: 12px 22px 0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 20px 92px;
+      scroll-behavior: smooth;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .title h1 { margin: 0; font-size: 28px; letter-spacing: -0.5px; }
+    .title p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+    .avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: var(--accent); color: white;
+      display: grid; place-items: center;
+      font-weight: 800;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #2f6f5e, #59987f);
+      color: white;
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .hero h2 { margin: 0 0 8px; font-size: 20px; }
+    .hero p { margin: 0 0 16px; font-size: 14px; opacity: .9; line-height: 1.45; }
+    .hero button, .primary-btn {
+      border: 0;
+      background: #fff;
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 12px 16px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+    }
+    .stat strong { display: block; font-size: 24px; margin-bottom: 4px; }
+    .stat span { color: var(--muted); font-size: 13px; }
+
+    .section-title {
+      display: flex; justify-content: space-between; align-items: end;
+      margin: 20px 0 10px;
+    }
+    .section-title h3 { margin: 0; font-size: 18px; }
+    .section-title button {
+      background: none; border: none; color: var(--accent); font-weight: 700; cursor: pointer;
+    }
+
+    .item {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .item-icon {
+      width: 44px; height: 44px; border-radius: 14px;
+      background: var(--accent-light);
+      display: grid; place-items: center;
+      font-size: 22px;
+      flex: 0 0 auto;
+    }
+    .item-info { flex: 1; min-width: 0; }
+    .item-info strong { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-info span { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .badge {
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .danger { background: var(--danger-bg); color: var(--danger); }
+    .warning { background: var(--warning-bg); color: var(--warning); }
+    .good { background: #e7f4ea; color: var(--good); }
+
+    .tabs {
+      position: absolute;
+      left: 12px; right: 12px; bottom: 12px;
+      height: 66px;
+      border-radius: 24px;
+      background: rgba(255,253,248,.96);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 30px rgba(0,0,0,.12);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 6px;
+    }
+    .tab {
+      border: 0;
+      background: transparent;
+      border-radius: 18px;
+      font-size: 11px;
+      color: var(--muted);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+    }
+    .tab.active { background: var(--accent-light); color: var(--accent); font-weight: 800; }
+    .tab i { font-style: normal; font-size: 20px; }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .scan-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      text-align: center;
+      box-shadow: var(--shadow);
+      margin-top: 18px;
+    }
+    .scan-box {
+      height: 240px;
+      border: 2px dashed #cfc5b7;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      background: #fffaf0;
+    }
+    .scan-box .camera { font-size: 54px; margin-bottom: 8px; }
+    .scan-card .primary-btn, .modal .primary-btn {
+      background: var(--accent);
+      color: white;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .progress-wrap { display: none; margin-top: 18px; text-align: left; }
+    .progress-line { height: 10px; background: #e7e0d6; border-radius: 999px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0; background: var(--accent); transition: width .5s ease; }
+    .progress-wrap p { font-size: 13px; color: var(--muted); }
+
+    .receipt-list .item { align-items: flex-start; }
+    .checkbox {
+      width: 22px; height: 22px; border-radius: 7px;
+      background: var(--accent); color: white;
+      display: grid; place-items: center; font-size: 14px;
+      margin-top: 3px;
+      flex: 0 0 auto;
+    }
+    select {
+      margin-top: 7px;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 10px;
+      padding: 7px 8px;
+      font-size: 12px;
+      color: var(--text);
+      width: 100%;
+    }
+
+    .filter-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; }
+    .chip {
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+    .modal-backdrop {
+      display: none;
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,.35);
+      align-items: end;
+      z-index: 10;
+    }
+    .modal {
+      width: 100%;
+      max-height: 78%;
+      background: var(--bg);
+      border-radius: 28px 28px 0 0;
+      padding: 20px;
+      overflow-y: auto;
+      animation: rise .22s ease;
+    }
+    @keyframes rise { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .modal-head h3 { margin: 0; }
+    .close { border: 0; background: #fff; border-radius: 999px; width: 32px; height: 32px; cursor: pointer; }
+
+    .toast {
+      position: absolute;
+      left: 24px; right: 24px; top: 54px;
+      background: #222;
+      color: white;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: .2s ease;
+      z-index: 20;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    .empty {
+      text-align: center; color: var(--muted); font-size: 14px;
+      padding: 30px 18px; background: var(--card); border-radius: 18px; border: 1px solid var(--line);
+    }
+
+    .insight {
+      background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 12px;
+    }
+    .insight strong { display: block; margin-bottom: 5px; }
+    .insight p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="screen">
+      <div class="status"><span>14:26</span><span>◔ 5G 82%</span></div>
+      <div class="toast" id="toast">已更新</div>
+
+      <main class="content">
+        <section id="home" class="page active">
+          <div class="topbar">
+            <div class="title">
+              <h1>HomeStock</h1>
+              <p>AI 小票库存助手</p>
+            </div>
+            <div class="avatar">A</div>
+          </div>
+
+          <div class="hero">
+            <h2>把购物小票变成家庭库存</h2>
+            <p>拍摄小票后，AI 会识别商品、自动分类，并预测什么时候需要补货。</p>
+            <button onclick="goTab('scan')">扫描一张小票</button>
+          </div>
+
+          <div class="cards">
+            <div class="stat"><strong id="totalItems">12</strong><span>库存商品</span></div>
+            <div class="stat"><strong id="soonItems">4</strong><span>即将补货</span></div>
+          </div>
+
+          <div class="section-title"><h3>今日提醒</h3><button onclick="goTab('shopping')">查看清单</button></div>
+          <div id="homeAlerts"></div>
+
+          <div class="section-title"><h3>AI 洞察</h3></div>
+          <div class="insight">
+            <strong>牛奶购买周期变短</strong>
+            <p>过去 3 次你平均每 5 天购买一次牛奶。系统建议在购物清单中常驻牛奶。</p>
+          </div>
+          <div class="insight">
+            <strong>纸巾可能仍有库存</strong>
+            <p>你上周购买过 9 包装纸巾，本次再次购买可能属于囤货。已自动延长预计使用周期。</p>
+          </div>
+        </section>
+
+        <section id="scan" class="page">
+          <div class="topbar">
+            <div class="title"><h1>Scan</h1><p>拍摄或上传购物小票</p></div>
+          </div>
+          <div class="scan-card">
+            <div class="scan-box">
+              <div class="camera">📷</div>
+              <strong>模拟拍摄 Tesco 小票</strong>
+              <p style="color:var(--muted);font-size:13px;line-height:1.45;margin:8px 0 0;">Demo 中会使用一张预设小票，展示 AI 识别和确认流程。</p>
+            </div>
+            <button class="primary-btn" onclick="simulateScan()">开始 AI 识别</button>
+            <div class="progress-wrap" id="progressWrap">
+              <div class="progress-line"><div class="progress-bar" id="progressBar"></div></div>
+              <p id="progressText">正在读取小票...</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="inventory" class="page">
+          <div class="topbar">
+            <div class="title"><h1>Inventory</h1><p>家庭库存与预计剩余时间</p></div>
+          </div>
+          <div class="filter-row" id="filters"></div>
+          <div id="inventoryList"></div>
+        </section>
+
+        <section id="shopping" class="page">
+          <div class="topbar">
+            <div class="title"><h1>Shopping List</h1><p>根据库存预测自动生成</p></div>
+          </div>
+          <div class="section-title"><h3>建议尽快补货</h3></div>
+          <div id="shoppingList"></div>
+          <div class="section-title"><h3>常一起购买</h3></div>
+          <div class="item"><div class="item-icon">🥛</div><div class="item-info"><strong>牛奶 + 面包</strong><span>你过去 5 次中有 3 次一起购买</span></div><span class="badge good">推荐</span></div>
+          <div class="item"><div class="item-icon">🐱</div><div class="item-info"><strong>猫粮 + 猫砂</strong><span>通常每月一起补货</span></div><span class="badge good">推荐</span></div>
+        </section>
+      </main>
+
+      <nav class="tabs">
+        <button class="tab active" data-tab="home" onclick="goTab('home')"><i>🏠</i>首页</button>
+        <button class="tab" data-tab="scan" onclick="goTab('scan')"><i>📷</i>扫描</button>
+        <button class="tab" data-tab="inventory" onclick="goTab('inventory')"><i>📦</i>库存</button>
+        <button class="tab" data-tab="shopping" onclick="goTab('shopping')"><i>🛒</i>清单</button>
+      </nav>
+
+      <div class="modal-backdrop" id="modalBackdrop">
+        <div class="modal">
+          <div class="modal-head">
+            <h3>AI 识别结果</h3>
+            <button class="close" onclick="closeModal()">×</button>
+          </div>
+          <p style="color:var(--muted);font-size:13px;line-height:1.45;margin-top:0;">请确认商品是否加入家庭库存。你可以修改分类，系统会记住你的选择。</p>
+          <div class="receipt-list" id="receiptList"></div>
+          <button class="primary-btn" onclick="confirmReceipt()">确认加入库存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let inventory = [
+      {name:'半脱脂牛奶 2L', category:'食品', icon:'🥛', days:1, note:'上次购买 5 天前，预计明天用完'},
+      {name:'鸡蛋 12 个', category:'食品', icon:'🥚', days:4, note:'根据你的早餐频率预测'},
+      {name:'小番茄 250g', category:'食品', icon:'🍅', days:2, note:'建议 2 天内食用'},
+      {name:'纸巾 9 包装', category:'日用品', icon:'🧻', days:18, note:'可能属于囤货商品'},
+      {name:'洗衣液 1.5L', category:'清洁用品', icon:'🧴', days:11, note:'预计 11 天后补货'},
+      {name:'猫粮湿粮 12 包', category:'宠物用品', icon:'🐱', days:6, note:'按照小猫消耗速度预测'},
+      {name:'牙膏 100ml', category:'个人护理', icon:'🪥', days:21, note:'长期用品'},
+      {name:'垃圾袋 30 只', category:'日用品', icon:'🗑️', days:9, note:'预计下周补货'},
+      {name:'酸奶 4 杯', category:'食品', icon:'🥣', days:3, note:'易腐食品'},
+      {name:'猫砂 10L', category:'宠物用品', icon:'🐾', days:5, note:'建议本周末补货'},
+      {name:'洗洁精 500ml', category:'清洁用品', icon:'🫧', days:15, note:'库存充足'},
+      {name:'维生素 D', category:'健康', icon:'💊', days:24, note:'长期用品'}
+    ];
+
+    const scannedItems = [
+      {name:'Alpro 无糖豆奶 1L', raw:'ALPRO SOYA UNSW 1L', category:'食品', icon:'🥛', days:5, note:'按饮用频率预计 5 天'},
+      {name:'香蕉 6 根', raw:'BANANA LOOSE', category:'食品', icon:'🍌', days:3, note:'建议 3 天内食用'},
+      {name:'厨房纸 2 卷', raw:'KITCHEN TOWEL 2PK', category:'日用品', icon:'🧻', days:14, note:'按历史购买周期预测'},
+      {name:'猫咪零食', raw:'CAT TREAT CHICKEN', category:'宠物用品', icon:'🐱', days:10, note:'非常购主食，提醒频率较低'}
+    ];
+
+    let currentFilter = '全部';
+
+    function goTab(tab) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(tab).classList.add('active');
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+      renderAll();
+    }
+
+    function badgeFor(days) {
+      if (days <= 2) return '<span class="badge danger">快用完</span>';
+      if (days <= 7) return '<span class="badge warning">需关注</span>';
+      return '<span class="badge good">充足</span>';
+    }
+
+    function itemHTML(item) {
+      return `<div class="item"><div class="item-icon">${item.icon}</div><div class="item-info"><strong>${item.name}</strong><span>${item.note}</span></div>${badgeFor(item.days)}</div>`;
+    }
+
+    function renderHome() {
+      const soon = inventory.filter(i => i.days <= 7).sort((a,b)=>a.days-b.days).slice(0,4);
+      document.getElementById('totalItems').textContent = inventory.length;
+      document.getElementById('soonItems').textContent = inventory.filter(i => i.days <= 7).length;
+      document.getElementById('homeAlerts').innerHTML = soon.map(itemHTML).join('');
+    }
+
+    function renderFilters() {
+      const cats = ['全部', ...Array.from(new Set(inventory.map(i => i.category)))];
+      document.getElementById('filters').innerHTML = cats.map(c => `<button class="chip ${c===currentFilter?'active':''}" onclick="setFilter('${c}')">${c}</button>`).join('');
+    }
+
+    function setFilter(cat) {
+      currentFilter = cat;
+      renderInventory();
+      renderFilters();
+    }
+
+    function renderInventory() {
+      const list = currentFilter === '全部' ? inventory : inventory.filter(i => i.category === currentFilter);
+      document.getElementById('inventoryList').innerHTML = list.length ? list.sort((a,b)=>a.days-b.days).map(itemHTML).join('') : '<div class="empty">这个分类暂时没有商品</div>';
+    }
+
+    function renderShopping() {
+      const list = inventory.filter(i => i.days <= 7).sort((a,b)=>a.days-b.days);
+      document.getElementById('shoppingList').innerHTML = list.length ? list.map(i => `<div class="item"><div class="item-icon">${i.icon}</div><div class="item-info"><strong>${i.name}</strong><span>预计 ${i.days} 天内需要补货</span></div><span class="badge warning">加入清单</span></div>`).join('') : '<div class="empty">目前没有需要补货的商品</div>';
+    }
+
+    function renderAll() {
+      renderHome(); renderFilters(); renderInventory(); renderShopping();
+    }
+
+    function simulateScan() {
+      const wrap = document.getElementById('progressWrap');
+      const bar = document.getElementById('progressBar');
+      const text = document.getElementById('progressText');
+      wrap.style.display = 'block';
+      bar.style.width = '0%'; text.textContent = '正在读取小票...';
+      setTimeout(()=>{bar.style.width='38%'; text.textContent='正在识别商品名称和价格...';}, 400);
+      setTimeout(()=>{bar.style.width='72%'; text.textContent='正在进行 AI 分类和库存预测...';}, 900);
+      setTimeout(()=>{bar.style.width='100%'; text.textContent='识别完成'; openReceiptModal();}, 1500);
+    }
+
+    function openReceiptModal() {
+      document.getElementById('receiptList').innerHTML = scannedItems.map((i, idx) => `
+        <div class="item">
+          <div class="checkbox">✓</div>
+          <div class="item-info">
+            <strong>${i.name}</strong>
+            <span>小票原文：${i.raw}</span>
+            <select onchange="scannedItems[${idx}].category=this.value">
+              ${['食品','日用品','清洁用品','个人护理','宠物用品','健康'].map(c => `<option ${c===i.category?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <span class="badge good">AI</span>
+        </div>`).join('');
+      document.getElementById('modalBackdrop').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('modalBackdrop').style.display = 'none'; }
+
+    function confirmReceipt() {
+      scannedItems.forEach(i => inventory.unshift({...i}));
+      closeModal();
+      showToast('已将 4 件商品加入家庭库存');
+      goTab('inventory');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'), 2200);
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
